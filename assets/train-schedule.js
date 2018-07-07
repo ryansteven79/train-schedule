@@ -15,45 +15,75 @@ $(document).ready(function () {
 
     $("#submit-btn").on("click", function () {
         event.preventDefault();
-        var name = $("#train-name").val().trim()    ;
-        var destination = $("#destination").val().trim()    ;
-        var firstTime = $("#first-train-time").val().trim() ;
-        var frequency = $("#frequency").val().trim()    ;
-        addTrain(name, destination, firstTime, frequency);
+        var name = $("#train-name").val().trim();
+        var destination = $("#destination").val().trim();
+        // var firstTime = $("#first-train-time").val().trim();
+        var frequency = $("#frequency").val().trim();
 
+        var newTrain = {
+            name: name,
+            destination: destination,
+            frequency: frequency
+        }
+        database.ref().push(newTrain);
 
-        var newName = $("<td>");
-        newName.attr("id", "new-name");
-        newName.html(name);
-        var newDest = $("<td>");
-        newDest.attr("id", "new-destination");
-        newDest.html(destination)
-        var newFreq = $("<td>");
-        newFreq.attr("id", "new-frequency");
-        newFreq.html(frequency);
-        var newNext = $("<td>");
-        newNext.attr("id", "new-next-arrival");
-        var newMinutes = $("<td>");
-        newMinutes.attr("id", "new-minutes-away");
-        $("#landing").append(newName, newDest, newFreq, newNext, newMinutes)
-
+        clearFields();
     })
 
     function clearFields() {
-        $("input").empty();
+        $("#train-name").val("");
+        $("#destination").val("");
+        $("#first-train-time").val("");
+        $("#frequency").val("");
     }
+    database.ref().on("child_added", function (childSnap) {
+        // console.log(childSnap.val());
 
-    function addToSchedule() {
+        //Store everything into a variable
+        var newName = childSnap.val().name;
+        var newDest = childSnap.val().destination;
+        var newFreq = childSnap.val().frequency;
+        var newFirstTrain = childSnap.val().frequency;
 
-    }
+        //Console those variables
+        console.log(newName);
+        console.log(newDest);
+        console.log(newFreq);
 
-    function addTrain(name, destination, firstTime, frequency) {
-        var newTrain = database.ref();
-        newTrain.push({
-            name: name,
-            destination: destination,
-            firstTime: firstTime,
-            frequency: frequency
-        })
-    }
+        // calculate the next arrival and Minutes away
+        //first time (pushed back 1 year to make sure it comes before the current time)
+        var startTimeConverted = moment(newFirstTrain, "hh:mm").subtract(1, "years");
+
+        //current time
+        // var currentTime = moment();
+
+        //difference between the times
+        var diffTime = moment().diff(moment(startTimeConverted), "minutes");
+
+        //time apart (remainder)
+        var tRemainder = diffTime % newFreq;
+
+        //minutes until train
+        var tMinutesTillTrain = newFreq - tRemainder;
+
+        //next train
+        var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+        var catchTrain = moment(nextTrain).format("HH:mm");
+
+
+        // Create new row
+        var newRow = $("<tr>").append(
+            $("<td>").text(newName),
+            $("<td>").text(newDest),
+            $("<td>").text(newFreq),
+            $("<td>").text(nextTrain),
+            $("<td>").text(catchTrain)
+
+        )
+        //Append the new row to the table
+        $("#landing").append(newRow);
+    })
+
+
+
 })
